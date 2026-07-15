@@ -41,14 +41,18 @@ def load_config(env: dict[str, str] | None = None) -> Config:
     else:
         providers = DEFAULT_PROVIDERS
 
-    state_file = Path(source.get("STATUS_WATCH_STATE_FILE", DEFAULT_STATE_FILE))
+    # `.get(key, default)` only falls back when the key is *absent* -- an
+    # explicitly empty env var would otherwise silently win over the
+    # default (and crash float() on ""), so empty/unset is treated the
+    # same via `or`.
+    state_file = Path(source.get("STATUS_WATCH_STATE_FILE") or DEFAULT_STATE_FILE)
     timeout_seconds = float(
-        source.get("STATUS_WATCH_TIMEOUT_SECONDS", DEFAULT_TIMEOUT_SECONDS)
+        source.get("STATUS_WATCH_TIMEOUT_SECONDS") or DEFAULT_TIMEOUT_SECONDS
     )
 
     key_id = source.get("STATUS_WATCH_AGENT_KEY_ID") or None
     secret = source.get("STATUS_WATCH_AGENT_SECRET") or None
-    base_url = source.get("STATUS_WATCH_BASE_URL", "https://api.aiopsenabler.com")
+    base_url = source.get("STATUS_WATCH_BASE_URL") or "https://api.aiopsenabler.com"
 
     return Config(
         providers=providers,

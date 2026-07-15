@@ -13,10 +13,15 @@ def _feed(*ids: str) -> str:
 
 
 def test_first_run_all_incidents_are_new(tmp_path: Path):
+    # A completed poll that finds new incidents is still "success" --
+    # detection is this agent doing its job, not a failure. The finding
+    # is surfaced via findings_summary (reported as external_ref), not
+    # via a non-success outcome.
     config = Config(providers=(PROVIDER,), state_file=tmp_path / "state.json")
     result = run_watch(config, fetcher=lambda url, timeout: _feed("a", "b"))
     assert len(result.new_incidents) == 2
-    assert result.outcome == "escalated"
+    assert result.outcome == "success"
+    assert result.findings_summary == "new incidents: github(2)"
 
 
 def test_second_run_only_reports_genuinely_new_incidents(tmp_path: Path):
@@ -28,7 +33,8 @@ def test_second_run_only_reports_genuinely_new_incidents(tmp_path: Path):
 
     assert len(second.new_incidents) == 1
     assert second.new_incidents[0].incident_id == "c"
-    assert second.outcome == "escalated"
+    assert second.outcome == "success"
+    assert second.findings_summary == "new incidents: github(1)"
 
 
 def test_no_new_incidents_is_success(tmp_path: Path):
@@ -40,6 +46,7 @@ def test_no_new_incidents_is_success(tmp_path: Path):
 
     assert second.new_incidents == ()
     assert second.outcome == "success"
+    assert second.findings_summary is None
 
 
 def test_provider_fetch_failure_is_reported_as_error(tmp_path: Path):
@@ -75,3 +82,16 @@ def test_multiple_providers_are_independent(tmp_path: Path):
     result = run_watch(config, fetcher=fetcher)
     assert len(result.providers) == 2
     assert {p.provider for p in result.providers} == {"github", "cloudflare"}
+
+
+def test_findings_summary_lists_multiple_providers(tmp_path: Path):
+    other = Provider(name="cloudflare", kind="statuspage_json", url="https://example2.test")
+    config = Config(providers=(PROVIDER, other), state_file=tmp_path / "state.json")
+
+    def fetcher(url, timeout):
+        if "example2" in url:
+            return _feed("x", "y")
+        return _feed("a")
+
+    result = run_watch(config, fetcher=fetcher)
+    assert result.findings_summary == "new incidents: github(1), cloudflare(2)"

@@ -37,17 +37,32 @@ class WatchResult:
 
     @property
     def has_errors(self) -> bool:
+        """True only when a provider's fetch itself failed (network
+        error, unparseable feed) -- as opposed to a successful poll that
+        found new incidents, which is this agent doing its job."""
         return any(not p.ok for p in self.providers)
+
+    @property
+    def findings_summary(self) -> str | None:
+        """A compact, human-readable summary of any newly-found
+        incidents, for the AiOps Enabler event's `external_ref` field
+        (the only freeform field the events API offers). None when
+        there's nothing new to report."""
+        counts = [(p.provider, len(p.new_incidents)) for p in self.providers if p.new_incidents]
+        if not counts:
+            return None
+        return ("new incidents: " + ", ".join(f"{name}({n})" for name, n in counts))[:255]
 
     @property
     def outcome(self) -> str:
         """Maps to the AiOps Enabler `task_completed` outcome enum
-        (success | failure | escalated)."""
-        if self.has_errors:
-            return "failure"
-        if self.new_incidents:
-            return "escalated"
-        return "success"
+        (success | failure). `failure` is reserved for a provider fetch
+        itself erroring out (see `has_errors`); a completed poll that
+        *found* new incidents is still `success` -- detection is this
+        agent doing its job, and the findings are reported via
+        `external_ref` (see `findings_summary`), not via a non-success
+        outcome."""
+        return "failure" if self.has_errors else "success"
 
 
 def run_watch(config: Config, fetcher=fetch_text) -> WatchResult:

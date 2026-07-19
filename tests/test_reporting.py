@@ -54,7 +54,7 @@ def test_outcome_success_when_new_incidents_found_with_external_ref():
     report_run(config, _result(new=2), poster=poster)
     second_body = json.loads(poster.calls[1][1])
     assert second_body["outcome"] == "success"
-    assert second_body["external_ref"] == "new incidents: github(2)"
+    assert second_body["external_ref"] == "swept 1 provider(s) -- new incidents: github(2)"
 
 
 def test_outcome_success_without_external_ref_when_nothing_new():
@@ -78,3 +78,23 @@ def test_reporting_error_carries_status_and_detail():
     err = ReportingError(422, '{"detail": "bad request"}')
     assert err.status_code == 422
     assert "bad request" in err.detail
+
+
+def test_duration_ms_is_never_zero():
+    poster = _FakePoster()
+    config = Config(report_enabled=True, agent_key_id="ak_test", agent_secret="s3cret")
+    report_run(config, _result(), poster=poster)
+    second_body = json.loads(poster.calls[1][1])
+    assert isinstance(second_body["duration_ms"], int)
+    assert second_body["duration_ms"] >= 1
+
+
+def test_duration_ms_reflects_real_elapsed_run_time():
+    import time
+
+    poster = _FakePoster()
+    config = Config(report_enabled=True, agent_key_id="ak_test", agent_secret="s3cret")
+    run_started = time.monotonic() - 2.5
+    report_run(config, _result(), poster=poster, run_started=run_started)
+    second_body = json.loads(poster.calls[1][1])
+    assert second_body["duration_ms"] >= 2500

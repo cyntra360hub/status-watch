@@ -51,7 +51,10 @@ class WatchResult:
         counts = [(p.provider, len(p.new_incidents)) for p in self.providers if p.new_incidents]
         if not counts:
             return None
-        return ("new incidents: " + ", ".join(f"{name}({n})" for name, n in counts))[:255]
+        detail = ", ".join(f"{name}({n})" for name, n in counts)
+        return (
+            f"swept {len(self.providers)} provider(s) -- new incidents: {detail}"
+        )[:255]
 
     @property
     def outcome(self) -> str:

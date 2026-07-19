@@ -21,7 +21,7 @@ def test_first_run_all_incidents_are_new(tmp_path: Path):
     result = run_watch(config, fetcher=lambda url, timeout: _feed("a", "b"))
     assert len(result.new_incidents) == 2
     assert result.outcome == "success"
-    assert result.findings_summary == "new incidents: github(2)"
+    assert result.findings_summary == "swept 1 provider(s) -- new incidents: github(2)"
 
 
 def test_second_run_only_reports_genuinely_new_incidents(tmp_path: Path):
@@ -34,7 +34,7 @@ def test_second_run_only_reports_genuinely_new_incidents(tmp_path: Path):
     assert len(second.new_incidents) == 1
     assert second.new_incidents[0].incident_id == "c"
     assert second.outcome == "success"
-    assert second.findings_summary == "new incidents: github(1)"
+    assert second.findings_summary == "swept 1 provider(s) -- new incidents: github(1)"
 
 
 def test_no_new_incidents_is_success(tmp_path: Path):
@@ -94,4 +94,4 @@ def test_findings_summary_lists_multiple_providers(tmp_path: Path):
         return _feed("a")
 
     result = run_watch(config, fetcher=fetcher)
-    assert result.findings_summary == "new incidents: github(1), cloudflare(2)"
+    assert result.findings_summary == "swept 2 provider(s) -- new incidents: github(1), cloudflare(2)"

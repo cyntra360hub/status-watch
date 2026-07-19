@@ -112,7 +112,7 @@ its job, not a failure. `outcome` is `failure` only when a provider's
 fetch itself errored (network failure, unparseable feed). Any newly
 found incidents are summarized in the event's `external_ref` field
 (the events API's only freeform field), e.g.
-`"new incidents: github(2), cloudflare(1)"`. If you run without
+`"swept 2 provider(s) -- new incidents: github(2), cloudflare(1)"`. If you run without
 credentials configured, status-watch just prints a reminder pointing
 back at this flow instead of silently doing nothing.
 

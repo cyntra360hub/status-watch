@@ -18,6 +18,10 @@ from status_watch.providers import Incident, fetch_incidents, fetch_text
 from status_watch.state import load_state, save_state
 
 
+def _pluralize(n: int, singular: str, plural: str | None = None) -> str:
+    return f"{n} {singular if n == 1 else (plural or singular + 's')}"
+
+
 @dataclass(frozen=True)
 class ProviderOutcome:
     provider: str
@@ -44,17 +48,31 @@ class WatchResult:
 
     @property
     def findings_summary(self) -> str | None:
-        """A compact, human-readable summary of any newly-found
-        incidents, for the AiOps Enabler event's `external_ref` field
-        (the only freeform field the events API offers). None when
-        there's nothing new to report."""
+        """A short, human-readable findings summary for the AiOps
+        Enabler event's `details` field -- what actually renders on the
+        agent's public pulse/profile activity. Names only the single
+        most illustrative incident plus a total count, rather than an
+        exhaustive per-provider list. None when there's nothing new."""
+        new = self.new_incidents
+        if not new:
+            return None
+        example = new[0]
+        provider_count = len({p.provider for p in self.providers if p.new_incidents})
+        incident_word = _pluralize(len(new), "new incident")
+        provider_word = _pluralize(provider_count, "provider")
+        return (
+            f"found {incident_word} across {provider_word} -- e.g. {example.provider}: {example.title}"
+        )[:500]
+
+    @property
+    def technical_summary(self) -> str | None:
+        """The fuller per-provider breakdown (every provider with new
+        incidents, and how many) for the event's legacy `external_ref`
+        field."""
         counts = [(p.provider, len(p.new_incidents)) for p in self.providers if p.new_incidents]
         if not counts:
             return None
-        detail = ", ".join(f"{name}({n})" for name, n in counts)
-        return (
-            f"swept {len(self.providers)} provider(s) -- new incidents: {detail}"
-        )[:255]
+        return ", ".join(f"{name}({n})" for name, n in counts)[:255]
 
     @property
     def outcome(self) -> str:

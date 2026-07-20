@@ -46,24 +46,26 @@ def test_report_enabled_sends_started_then_completed():
     assert kinds == ["task_started", "task_completed"]
 
 
-def test_outcome_success_when_new_incidents_found_with_external_ref():
+def test_outcome_success_when_new_incidents_found_with_details():
     # Finding new incidents is a successful detection, not a failure --
-    # the finding goes in external_ref, not outcome.
+    # the finding goes in `details`/`external_ref`, not outcome.
     poster = _FakePoster()
     config = Config(report_enabled=True, agent_key_id="ak_test", agent_secret="s3cret")
     report_run(config, _result(new=2), poster=poster)
     second_body = json.loads(poster.calls[1][1])
     assert second_body["outcome"] == "success"
-    assert second_body["external_ref"] == "swept 1 provider(s) -- new incidents: github(2)"
+    assert second_body["details"] == "found 2 new incidents across 1 provider -- e.g. github: x"
+    assert second_body["external_ref"] == "github(2)"
 
 
-def test_outcome_success_without_external_ref_when_nothing_new():
+def test_outcome_success_without_details_or_external_ref_when_nothing_new():
     poster = _FakePoster()
     config = Config(report_enabled=True, agent_key_id="ak_test", agent_secret="s3cret")
     report_run(config, _result(new=0), poster=poster)
     second_body = json.loads(poster.calls[1][1])
     assert second_body["outcome"] == "success"
     assert "external_ref" not in second_body
+    assert "details" not in second_body
 
 
 def test_outcome_failure_when_provider_errors():

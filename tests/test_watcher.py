@@ -21,7 +21,7 @@ def test_first_run_all_incidents_are_new(tmp_path: Path):
     result = run_watch(config, fetcher=lambda url, timeout: _feed("a", "b"))
     assert len(result.new_incidents) == 2
     assert result.outcome == "success"
-    assert result.findings_summary == "swept 1 provider(s) -- new incidents: github(2)"
+    assert result.findings_summary == "found 2 new incidents across 1 provider -- e.g. github: incident a"
 
 
 def test_second_run_only_reports_genuinely_new_incidents(tmp_path: Path):
@@ -34,7 +34,7 @@ def test_second_run_only_reports_genuinely_new_incidents(tmp_path: Path):
     assert len(second.new_incidents) == 1
     assert second.new_incidents[0].incident_id == "c"
     assert second.outcome == "success"
-    assert second.findings_summary == "swept 1 provider(s) -- new incidents: github(1)"
+    assert second.findings_summary == "found 1 new incident across 1 provider -- e.g. github: incident c"
 
 
 def test_no_new_incidents_is_success(tmp_path: Path):
@@ -84,7 +84,7 @@ def test_multiple_providers_are_independent(tmp_path: Path):
     assert {p.provider for p in result.providers} == {"github", "cloudflare"}
 
 
-def test_findings_summary_lists_multiple_providers(tmp_path: Path):
+def test_findings_summary_names_only_one_example_with_a_count(tmp_path: Path):
     other = Provider(name="cloudflare", kind="statuspage_json", url="https://example2.test")
     config = Config(providers=(PROVIDER, other), state_file=tmp_path / "state.json")
 
@@ -94,4 +94,18 @@ def test_findings_summary_lists_multiple_providers(tmp_path: Path):
         return _feed("a")
 
     result = run_watch(config, fetcher=fetcher)
-    assert result.findings_summary == "swept 2 provider(s) -- new incidents: github(1), cloudflare(2)"
+    assert result.findings_summary == "found 3 new incidents across 2 providers -- e.g. github: incident a"
+    assert "cloudflare" not in result.findings_summary
+
+
+def test_technical_summary_lists_every_provider_with_new_incidents(tmp_path: Path):
+    other = Provider(name="cloudflare", kind="statuspage_json", url="https://example2.test")
+    config = Config(providers=(PROVIDER, other), state_file=tmp_path / "state.json")
+
+    def fetcher(url, timeout):
+        if "example2" in url:
+            return _feed("x", "y")
+        return _feed("a")
+
+    result = run_watch(config, fetcher=fetcher)
+    assert result.technical_summary == "github(1), cloudflare(2)"

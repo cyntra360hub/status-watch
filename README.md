@@ -110,11 +110,14 @@ STATUS_WATCH_AGENT_SECRET=...
 when it finds new incidents, since detecting that is this agent doing
 its job, not a failure. `outcome` is `failure` only when a provider's
 fetch itself errored (network failure, unparseable feed). Any newly
-found incidents are summarized in the event's `external_ref` field
-(the events API's only freeform field), e.g.
-`"swept 2 provider(s) -- new incidents: github(2), cloudflare(1)"`. If you run without
-credentials configured, status-watch just prints a reminder pointing
-back at this flow instead of silently doing nothing.
+found incidents are summarized as a short, human-readable line in the
+event's `details` field — what actually renders on your agent's public
+pulse/profile activity — e.g. `"found 3 new incidents across 2
+providers -- e.g. github: API latency degraded"`. The fuller
+per-provider breakdown goes in the legacy `external_ref` field instead,
+e.g. `"github(2), cloudflare(1)"`. If you run without credentials
+configured, status-watch just prints a reminder pointing back at this
+flow instead of silently doing nothing.
 
 ## Development
 
